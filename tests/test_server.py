@@ -23,7 +23,6 @@ from sanic import Sanic
 from sanic.testing import SanicTestClient
 from tests.nlu.utilities import ResponseTest
 
-
 # a couple of event instances that we can use for testing
 test_events = [
     Event.from_parameters(
@@ -285,6 +284,27 @@ def test_train_nlu_success(
     assert os.path.exists(os.path.join(model_path, "fingerprint.json"))
 
 
+def test_train_nlu_with_json_success(
+    rasa_app, supervised_stack_config, moodbot_json_nlu_data, moodbot_domain
+):
+    payload = dict(
+        domain=moodbot_domain, config=supervised_stack_config, nlu=moodbot_json_nlu_data
+    )
+
+    _, response = rasa_app.post("/model/train", json=payload)
+    assert response.status == 200
+
+    # save model to temporary file
+    tempdir = tempfile.mkdtemp()
+    model_path = os.path.join(tempdir, "model.tar.gz")
+    with open(model_path, "wb") as f:
+        f.write(response.body)
+
+    # unpack model and ensure fingerprint is present
+    model_path = unpack_model(model_path)
+    assert os.path.exists(os.path.join(model_path, "fingerprint.json"))
+
+
 def test_train_core_success(
     rasa_app, default_stack_config, default_stories_file, default_domain_path
 ):
@@ -293,7 +313,7 @@ def test_train_core_success(
     core_file = open(default_stories_file)
 
     payload = dict(
-        domain=domain_file.read(), config=config_file.read(), nlu=core_file.read()
+        domain=domain_file.read(), config=config_file.read(), stories=core_file.read()
     )
 
     config_file.close()
@@ -331,7 +351,7 @@ def test_train_internal_error(rasa_app: SanicTestClient):
     payload = dict(domain="domain data", config="config data", nlu="nlu data")
 
     _, response = rasa_app.post("/model/train", json=payload)
-    assert response.status == 500
+    assert response.status >= 400
 
 
 def test_evaluate_stories(rasa_app, default_stories_file):

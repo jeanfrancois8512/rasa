@@ -21,6 +21,12 @@ from tests.core.conftest import (
 
 DEFAULT_CONFIG_PATH = "rasa/cli/default_config.yml"
 
+SUPERVISED_STACK_CONFIG_PATH = "data/test_config/config_supervised.yml"
+
+MOODBOT_NLU_DATA = "examples/moodbot/data/nlu.md"
+
+MOODBOT_DOMAIN_PATH = "examples/moodbot/domain.yml"
+
 # we reuse a bit of pytest's own testing machinery, this should eventually come
 # from a separatedly installable pytest-cli plugin.
 pytest_plugins = ["pytester"]
@@ -107,6 +113,28 @@ def end_to_end_story_file():
 @pytest.fixture(scope="session")
 def default_config():
     return config.load(DEFAULT_CONFIG_PATH)
+
+
+@pytest.fixture(scope="session")
+def supervised_stack_config():
+    with open(SUPERVISED_STACK_CONFIG_PATH) as fin:
+        config = fin.read()
+    return config
+
+
+@pytest.fixture(scope="session")
+def moodbot_json_nlu_data():
+    from rasa.nlu import training_data
+
+    td = training_data.load_data(MOODBOT_NLU_DATA, "en")
+    return td.nlu_as_json()
+
+
+@pytest.fixture(scope="session")
+def moodbot_domain():
+    with open(MOODBOT_DOMAIN_PATH) as fin:
+        domain = fin.read()
+    return domain
 
 
 @pytest.fixture()
