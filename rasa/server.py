@@ -4,7 +4,7 @@ import tempfile
 import traceback
 from functools import wraps, reduce
 from inspect import isawaitable
-from typing import Any, Callable, List, Optional, Text, Union
+from typing import Any, Callable, List, Optional, Text, Union, Dict
 from ssl import SSLContext
 
 from sanic import Sanic, response
@@ -653,7 +653,8 @@ def create_app(
         dump_obj_as_str_to_file(config_path, rjs["config"])
 
         if "nlu" in rjs:
-            nlu_path = os.path.join(temp_dir, "nlu.md")
+            file_ext = guess_nlu_format(rjs)
+            nlu_path = os.path.join(temp_dir, "nlu" + file_ext)
             dump_obj_as_str_to_file(nlu_path, rjs["nlu"])
 
         if "stories" in rjs:
@@ -719,6 +720,24 @@ def create_app(
                 "specify the `domain`.",
                 {"parameter": "domain", "in": "body"},
             )
+
+    def guess_nlu_format(rjs: Dict[Text, Text]) -> Text:
+        from rasa.nlu.training_data.loading import guess_string_format, MARKDOWN, RASA
+
+        file_ext = ".json"
+        format = guess_string_format(rjs["nlu"])
+        if format not in [MARKDOWN, RASA]:
+            raise ErrorResponse(
+                400,
+                "BadRequest",
+                "NLU training data format not supported. "
+                "Try converting your data to markdown or json.",
+                {"parameters": "nlu", "in": "body"},
+            )
+        if format == MARKDOWN:
+            file_ext = ".md"
+
+        return file_ext
 
     @app.post("/model/test/stories")
     @requires_auth(app, auth_token)
