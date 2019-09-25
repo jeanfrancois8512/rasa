@@ -157,11 +157,25 @@ def guess_format(filename: Text) -> Text:
     Returns:
         Guessed file format.
     """
+
+    content = io_utils.read_file(filename)
+    return guess_string_format(content, filename)
+
+
+def guess_string_format(content: Text, filename: Text = "") -> Text:
+    """Applies heuristics to guess the data format of a string.
+
+    Args:
+        content: string whose type should be guessed
+        filename: the source file name if any
+
+    Returns:
+        Guessed string format.
+
+    """
     guess = UNK
 
-    content = ""
     try:
-        content = io_utils.read_file(filename)
         js = json.loads(content)
     except ValueError:
         if any([marker in content for marker in _markdown_section_markers]):
